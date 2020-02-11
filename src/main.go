@@ -10,6 +10,10 @@ func main() {
 	if err := list_light_and_heavy_rail_routes(); err != nil {
 		panic(err)
 	}
+
+	if err := print_stop_data(); err != nil {
+		panic(err)
+	}
 }
 
 type RouteWrapper struct {
@@ -75,6 +79,46 @@ func get_heavy_and_light_routes() (RouteWrapper, error) {
 	}
 
 	return wrapper, nil
+}
+
+func print_stop_data() error {
+	wrapper, err := get_heavy_and_light_routes()
+	if err != nil {
+		return err
+	}
+
+	routeStops := map[Route]StopWrapper{}
+
+	for _, route := range wrapper.Data {
+		stops, err := get_route_stops(route)
+		if err != nil {
+			return err
+		}
+		routeStops[route] = stops
+	}
+
+	min := 999999
+	minRoute := ""
+	max := 0
+	maxRoute := ""
+
+	for route, stops := range routeStops {
+		if len(stops.Data) > max {
+			maxRoute = route.Attribute.LongName
+			max = len(stops.Data)
+		}
+		if len(stops.Data) < min {
+			minRoute = route.Attribute.LongName
+			min = len(stops.Data)
+		}
+	}
+
+	fmt.Println("Route with the minimum number of stops:")
+	fmt.Printf("%s (with %d stops)\n", minRoute, min)
+	fmt.Println("Route with the maximum number of stops:")
+	fmt.Printf("%s (with %d stops)\n", maxRoute, max)
+
+	return nil
 }
 
 func get_route_stops(route Route) (StopWrapper, error) {

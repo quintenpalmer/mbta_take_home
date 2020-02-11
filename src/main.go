@@ -21,11 +21,11 @@ type RouteWrapper struct {
 }
 
 type Route struct {
-	ID        string    `json:"id"`
-	Attribute Attribute `json:"attributes"`
+	ID        string         `json:"id"`
+	Attribute RouteAttribute `json:"attributes"`
 }
 
-type Attribute struct {
+type RouteAttribute struct {
 	LongName string `json:"long_name"`
 }
 

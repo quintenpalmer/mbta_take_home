@@ -35,18 +35,8 @@ const (
 )
 
 func list_light_and_heavy_rail_routes() error {
-	// Question 1 mentions how we can filter for the rail types on the query, or could filter after having
-	// consumed the response. To save on retrieving data that we don't need, we are asking the server to filter
-	// for us. Given how the filter types are documented with their own type, I feel this speaks reasonably well
-	// as to what is happening with the query params going into the request.
-	url := fmt.Sprintf("https://api-v3.mbta.com/routes?filter[type]=%d,%d", RouteRailTypeLightRail, RouteRailTypeHeavyRail)
-	resp, err := http.Get(url)
+	wrapper, err := get_heavy_and_light_routes()
 	if err != nil {
-		return err
-	}
-	wrapper := RouteWrapper{}
-	decoder := json.NewDecoder(resp.Body)
-	if err := decoder.Decode(&wrapper); err != nil {
 		return err
 	}
 
@@ -54,6 +44,26 @@ func list_light_and_heavy_rail_routes() error {
 	for _, route := range wrapper.Data {
 		fmt.Println(route.Attribute.LongName)
 	}
+	fmt.Println("")
 
 	return nil
+}
+
+func get_heavy_and_light_routes() (RouteWrapper, error) {
+	// Question 1 mentions how we can filter for the rail types on the query, or could filter after having
+	// consumed the response. To save on retrieving data that we don't need, we are asking the server to filter
+	// for us. Given how the filter types are documented with their own type, I feel this speaks reasonably well
+	// as to what is happening with the query params going into the request.
+	url := fmt.Sprintf("https://api-v3.mbta.com/routes?filter[type]=%d,%d", RouteRailTypeLightRail, RouteRailTypeHeavyRail)
+	resp, err := http.Get(url)
+	if err != nil {
+		return RouteWrapper{}, err
+	}
+	wrapper := RouteWrapper{}
+	decoder := json.NewDecoder(resp.Body)
+	if err := decoder.Decode(&wrapper); err != nil {
+		return RouteWrapper{}, err
+	}
+
+	return wrapper, nil
 }

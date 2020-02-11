@@ -121,6 +121,20 @@ func print_stop_data() error {
 	return nil
 }
 
+func build_route_list_name(routes []Route) string {
+	list_name := ""
+	first := true
+	for _, route := range routes {
+		if first {
+			list_name = route.Attribute.LongName
+			first = false
+		} else {
+			list_name = fmt.Sprintf("%s, %s", list_name, route.Attribute.LongName)
+		}
+	}
+	return list_name
+}
+
 func get_route_stops(route Route) (StopWrapper, error) {
 	// We want the count of stops for each route. From what I am reading on:
 	// https://api-v3.mbta.com/docs/swagger/index.html#/Stop/ApiWeb_StopController_index

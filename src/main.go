@@ -34,7 +34,12 @@ type StopWrapper struct {
 }
 
 type Stop struct {
-	ID string `json:"id"`
+	ID        string        `json:"id"`
+	Attribute StopAttribute `json:"attributes"`
+}
+
+type StopAttribute struct {
+	Name string `json:"name"`
 }
 
 type RouteRailType int
@@ -89,12 +94,17 @@ func print_stop_data() error {
 
 	routeStops := map[Route]StopWrapper{}
 
+	stopRoutes := map[Stop][]Route{}
+
 	for _, route := range wrapper.Data {
 		stops, err := get_route_stops(route)
 		if err != nil {
 			return err
 		}
 		routeStops[route] = stops
+		for _, stop := range stops.Data {
+			stopRoutes[stop] = append(stopRoutes[stop], route)
+		}
 	}
 
 	min := 999999
@@ -117,6 +127,14 @@ func print_stop_data() error {
 	fmt.Printf("%s (with %d stops)\n", minRoute, min)
 	fmt.Println("Route with the maximum number of stops:")
 	fmt.Printf("%s (with %d stops)\n", maxRoute, max)
+	fmt.Println("")
+
+	fmt.Println("The following stops connect multiple routes:")
+	for stop, routes := range stopRoutes {
+		if len(routes) > 1 {
+			fmt.Printf("Stop %s connects routes: %s\n", stop.Attribute.Name, build_route_list_name(routes))
+		}
+	}
 
 	return nil
 }

@@ -300,3 +300,127 @@ func Test_build_route_list_name(t *testing.T) {
 		}
 	})
 }
+
+func Test_explore_routes_and_stops(t *testing.T) {
+	t.Run("happy path - same start and end", func(t *testing.T) {
+		routeStops := map[Route][]Stop{}
+		stopRoutes := map[Stop][]Route{}
+		currentStop := Stop{ID: "stop id 1"}
+		endStop := Stop{ID: "stop id 1"}
+		currentRoutes := []Route{}
+		explored := map[Route]struct{}{}
+
+		expected := []Route{}
+
+		found, err := explore_routes_and_stops(routeStops, stopRoutes, currentStop, endStop, currentRoutes, explored)
+		if err != nil {
+			t.Error("did not expect an error")
+		}
+		if !reflect.DeepEqual(expected, found) {
+			t.Errorf("expected %s to be equal to %s", expected, found)
+		}
+	})
+
+	t.Run("happy path - on same route", func(t *testing.T) {
+		routeStops := map[Route][]Stop{
+			Route{ID: "route id 1"}: []Stop{
+				{ID: "stop id 1"},
+				{ID: "stop id 2"},
+			},
+		}
+		stopRoutes := map[Stop][]Route{
+			Stop{ID: "stop id 1"}: []Route{
+				{ID: "route id 1"},
+			},
+			Stop{ID: "stop id 2"}: []Route{
+				{ID: "route id 1"},
+			},
+		}
+		currentStop := Stop{ID: "stop id 1"}
+		endStop := Stop{ID: "stop id 2"}
+		currentRoutes := []Route{}
+		explored := map[Route]struct{}{}
+
+		expected := []Route{{ID: "route id 1"}}
+
+		found, err := explore_routes_and_stops(routeStops, stopRoutes, currentStop, endStop, currentRoutes, explored)
+		if err != nil {
+			t.Error("did not expect an error")
+		}
+		if !reflect.DeepEqual(expected, found) {
+			t.Errorf("expected %s to be equal to %s", expected, found)
+		}
+	})
+
+	t.Run("happy path - one route hop", func(t *testing.T) {
+		routeStops := map[Route][]Stop{
+			Route{ID: "route id 1"}: []Stop{
+				{ID: "stop id 1"},
+				{ID: "stop id 2"},
+			},
+			Route{ID: "route id 2"}: []Stop{
+				{ID: "stop id 2"},
+				{ID: "stop id 3"},
+			},
+		}
+		stopRoutes := map[Stop][]Route{
+			Stop{ID: "stop id 1"}: []Route{
+				{ID: "route id 1"},
+			},
+			Stop{ID: "stop id 2"}: []Route{
+				{ID: "route id 1"},
+				{ID: "route id 2"},
+			},
+			Stop{ID: "stop id 3"}: []Route{
+				{ID: "route id 2"},
+			},
+		}
+		currentStop := Stop{ID: "stop id 1"}
+		endStop := Stop{ID: "stop id 3"}
+		currentRoutes := []Route{}
+		explored := map[Route]struct{}{}
+
+		expected := []Route{{ID: "route id 1"}, {ID: "route id 2"}}
+
+		found, err := explore_routes_and_stops(routeStops, stopRoutes, currentStop, endStop, currentRoutes, explored)
+		if err != nil {
+			t.Error("did not expect an error")
+		}
+		if !reflect.DeepEqual(expected, found) {
+			t.Errorf("expected %s to be equal to %s", expected, found)
+		}
+	})
+
+	t.Run("sad path - one route hop - missing stop 2 route 2 connection", func(t *testing.T) {
+		routeStops := map[Route][]Stop{
+			Route{ID: "route id 1"}: []Stop{
+				{ID: "stop id 1"},
+				{ID: "stop id 2"},
+			},
+			Route{ID: "route id 2"}: []Stop{
+				{ID: "stop id 2"},
+				{ID: "stop id 3"},
+			},
+		}
+		stopRoutes := map[Stop][]Route{
+			Stop{ID: "stop id 1"}: []Route{
+				{ID: "route id 1"},
+			},
+			Stop{ID: "stop id 2"}: []Route{
+				{ID: "route id 1"},
+			},
+			Stop{ID: "stop id 3"}: []Route{
+				{ID: "route id 2"},
+			},
+		}
+		currentStop := Stop{ID: "stop id 1"}
+		endStop := Stop{ID: "stop id 3"}
+		currentRoutes := []Route{}
+		explored := map[Route]struct{}{}
+
+		_, err := explore_routes_and_stops(routeStops, stopRoutes, currentStop, endStop, currentRoutes, explored)
+		if err != ErrNoPath {
+			t.Errorf("expected error %s to be %s", err, ErrNoPath)
+		}
+	})
+}

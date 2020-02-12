@@ -3,6 +3,19 @@ Project
 
 This is a project to satisfy a take-home assignment to interface with the MBTA API.
 
+Preface
+=======
+
+Reading the git history of this project should tell a good story of how it was built.
+
+Reading the history through GitHub may be easiest, or if you have `tig` installed, I find
+that makes it very easy to read git history from a terminal emulator interface.
+
+I will note that I normally would not include the tests in a second pass, but it was the way
+this project fell out as I explored the requirements. Normally I would fold the tests back in
+to be introduced as the functionality is introduced, but given the time constraint I decided just
+to add them after the implementation.
+
 Outline
 =======
 

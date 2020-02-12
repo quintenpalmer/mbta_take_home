@@ -267,6 +267,11 @@ func prompt_for_stops_to_route(api MBTAWebServer) error {
 	return nil
 }
 
+var (
+	ErrNoStartStop = errors.New("could not find start stop")
+	ErrNoEndStop   = errors.New("could not find end stop")
+)
+
 func routes_for_stop_to_stop(api MBTAWebServer, startStopName string, endStopName string) ([]Route, error) {
 	wrapper, err := get_heavy_and_light_routes(api)
 	if err != nil {
@@ -297,10 +302,10 @@ func routes_for_stop_to_stop(api MBTAWebServer, startStopName string, endStopNam
 	}
 
 	if startStop.ID == "" {
-		return nil, errors.New(fmt.Sprintf("could not find start stop with name: %s", startStopName))
+		return nil, ErrNoStartStop
 	}
 	if endStop.ID == "" {
-		return nil, errors.New(fmt.Sprintf("could not find end stop with name: %s", endStopName))
+		return nil, ErrNoEndStop
 	}
 
 	routes, err := explore_routes_and_stops(routeStops, stopRoutes, startStop, endStop, []Route{}, map[Route]struct{}{})

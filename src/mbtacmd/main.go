@@ -31,6 +31,8 @@ type MBTAWebServer interface {
 	GetStops(Route) (StopWrapper, error)
 }
 
+var ErrWebFailure = errors.New("MBTA API reported a non-OK status code (could be rate-limiting)")
+
 type ConcreteMBTAWebServer struct{}
 
 func (c ConcreteMBTAWebServer) GetRoutes(type1 RouteRailType, type2 RouteRailType) (RouteWrapper, error) {
@@ -39,6 +41,11 @@ func (c ConcreteMBTAWebServer) GetRoutes(type1 RouteRailType, type2 RouteRailTyp
 	if err != nil {
 		return RouteWrapper{}, err
 	}
+
+	if resp.StatusCode >= 400 {
+		return RouteWrapper{}, ErrWebFailure
+	}
+
 	wrapper := RouteWrapper{}
 	decoder := json.NewDecoder(resp.Body)
 	if err := decoder.Decode(&wrapper); err != nil {
@@ -60,6 +67,11 @@ func (c ConcreteMBTAWebServer) GetStops(route Route) (StopWrapper, error) {
 	if err != nil {
 		return StopWrapper{}, err
 	}
+
+	if resp.StatusCode >= 400 {
+		return StopWrapper{}, ErrWebFailure
+	}
+
 	wrapper := StopWrapper{}
 	decoder := json.NewDecoder(resp.Body)
 	if err := decoder.Decode(&wrapper); err != nil {

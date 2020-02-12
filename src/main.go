@@ -184,6 +184,11 @@ func explore_routes_and_stops(routeStops map[Route][]Stop, stopRoutes map[Stop][
 
 	for _, route := range stopRoutes[currentStop] {
 		for _, subStop := range routeStops[route] {
+			if subStop == endStop {
+				return append(currentRoutes, route), nil
+			}
+		}
+		for _, subStop := range routeStops[route] {
 			if _, ok := explored[route]; !ok {
 				subExplored := map[Route]struct{}{}
 				for exploredRoute := range explored {

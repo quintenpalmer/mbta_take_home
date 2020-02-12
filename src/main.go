@@ -94,10 +94,17 @@ func get_heavy_and_light_routes() (RouteWrapper, error) {
 	return wrapper, nil
 }
 
-func print_stop_data() error {
+type MinMaxData struct {
+	Min      int
+	MinRoute string
+	Max      int
+	MaxRoute string
+}
+
+func collect_stop_data() (MinMaxData, map[Stop][]Route, error) {
 	wrapper, err := get_heavy_and_light_routes()
 	if err != nil {
-		return err
+		return MinMaxData{}, nil, err
 	}
 
 	routeStops := map[Route]StopWrapper{}
@@ -107,7 +114,7 @@ func print_stop_data() error {
 	for _, route := range wrapper.Data {
 		stops, err := get_route_stops(route)
 		if err != nil {
-			return err
+			return MinMaxData{}, nil, err
 		}
 		routeStops[route] = stops
 		for _, stop := range stops.Data {
@@ -131,10 +138,24 @@ func print_stop_data() error {
 		}
 	}
 
+	return MinMaxData{
+		Min:      min,
+		MinRoute: minRoute,
+		Max:      max,
+		MaxRoute: maxRoute,
+	}, stopRoutes, nil
+}
+
+func print_stop_data() error {
+	minMaxData, stopRoutes, err := collect_stop_data()
+	if err != nil {
+		return err
+	}
+
 	fmt.Println("Route with the minimum number of stops:")
-	fmt.Printf("%s (with %d stops)\n", minRoute, min)
+	fmt.Printf("%s (with %d stops)\n", minMaxData.MinRoute, minMaxData.Min)
 	fmt.Println("Route with the maximum number of stops:")
-	fmt.Printf("%s (with %d stops)\n", maxRoute, max)
+	fmt.Printf("%s (with %d stops)\n", minMaxData.MaxRoute, minMaxData.Max)
 	fmt.Println("")
 
 	fmt.Println("The following stops connect multiple routes:")

@@ -265,3 +265,38 @@ func Test_collect_stop_data(t *testing.T) {
 		}
 	})
 }
+
+func Test_build_route_list_name(t *testing.T) {
+	t.Run("happy path - no values", func(t *testing.T) {
+		input := []Route{}
+
+		expected := ""
+
+		result := build_route_list_name(input)
+		if expected != result {
+			t.Errorf("expected %v to be equal to %v", expected, result)
+		}
+	})
+
+	t.Run("happy path - one value", func(t *testing.T) {
+		input := []Route{{Attribute: RouteAttribute{LongName: "route name 1"}}}
+
+		expected := "route name 1"
+
+		result := build_route_list_name(input)
+		if expected != result {
+			t.Errorf("expected %v to be equal to %v", expected, result)
+		}
+	})
+
+	t.Run("happy path - two values", func(t *testing.T) {
+		input := []Route{{Attribute: RouteAttribute{LongName: "route name 1"}}, {Attribute: RouteAttribute{LongName: "route name 2"}}}
+
+		expected := "route name 1, route name 2"
+
+		result := build_route_list_name(input)
+		if expected != result {
+			t.Errorf("expected %v to be equal to %v", expected, result)
+		}
+	})
+}

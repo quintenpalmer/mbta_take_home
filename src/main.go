@@ -15,6 +15,10 @@ func main() {
 	if err := print_stop_data(); err != nil {
 		panic(err)
 	}
+
+	if err := routes_for_stop_to_stop("Ashmont", "Arlington"); err != nil {
+		panic(err)
+	}
 }
 
 type RouteWrapper struct {
@@ -136,6 +140,7 @@ func print_stop_data() error {
 			fmt.Printf("Stop %s connects routes: %s\n", stop.Attribute.Name, build_route_list_name(routes))
 		}
 	}
+	fmt.Println("")
 
 	return nil
 }
@@ -173,6 +178,58 @@ func get_route_stops(route Route) (StopWrapper, error) {
 	}
 
 	return wrapper, nil
+}
+
+func routes_for_stop_to_stop(startStopName string, endStopName string) error {
+	wrapper, err := get_heavy_and_light_routes()
+	if err != nil {
+		return err
+	}
+
+	routeStops := map[Route][]Stop{}
+	stopRoutes := map[Stop][]Route{}
+
+	startStop := Stop{}
+	endStop := Stop{}
+
+	for _, route := range wrapper.Data {
+		stops, err := get_route_stops(route)
+		if err != nil {
+			return err
+		}
+		routeStops[route] = stops.Data
+		for _, stop := range stops.Data {
+			stopRoutes[stop] = append(stopRoutes[stop], route)
+			if stop.Attribute.Name == startStopName {
+				startStop = stop
+			}
+			if stop.Attribute.Name == endStopName {
+				endStop = stop
+			}
+		}
+	}
+
+	if startStop.ID == "" {
+		return errors.New(fmt.Sprintf("could not find start stop with name: %s", startStopName))
+	}
+	if endStop.ID == "" {
+		return errors.New(fmt.Sprintf("could not find end stop with name: %s", endStopName))
+	}
+
+	routes, err := explore_routes_and_stops(routeStops, stopRoutes, startStop, endStop, []Route{}, map[Route]struct{}{})
+	if err != nil {
+		return err
+	}
+	if len(routes) > 0 {
+		fmt.Printf("Take the following routes to get from %s to %s:\n", startStopName, endStopName)
+		for _, route := range routes {
+			fmt.Println(route.Attribute.LongName)
+		}
+	} else {
+		fmt.Printf("The path from %s to %s is to take no routes, as they are the same path.\n", startStopName, endStopName)
+	}
+
+	return nil
 }
 
 var ErrNoPath = errors.New("no path to end stop from this branch")

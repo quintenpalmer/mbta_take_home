@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 )
@@ -172,4 +173,30 @@ func get_route_stops(route Route) (StopWrapper, error) {
 	}
 
 	return wrapper, nil
+}
+
+var ErrNoPath = errors.New("no path to end stop from this branch")
+
+func explore_routes_and_stops(routeStops map[Route][]Stop, stopRoutes map[Stop][]Route, currentStop Stop, endStop Stop, currentRoutes []Route, explored map[Route]struct{}) ([]Route, error) {
+	if currentStop == endStop {
+		return currentRoutes, nil
+	}
+
+	for _, route := range stopRoutes[currentStop] {
+		for _, subStop := range routeStops[route] {
+			if _, ok := explored[route]; !ok {
+				subExplored := map[Route]struct{}{}
+				for exploredRoute := range explored {
+					subExplored[exploredRoute] = struct{}{}
+				}
+				subExplored[route] = struct{}{}
+				ret, err := explore_routes_and_stops(routeStops, stopRoutes, subStop, endStop, append(currentRoutes, route), subExplored)
+				if err == nil {
+					return ret, nil
+				}
+			}
+		}
+	}
+
+	return []Route{}, ErrNoPath
 }

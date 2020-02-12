@@ -11,15 +11,17 @@ import (
 )
 
 func main() {
-	if err := print_light_and_heavy_rail_routes(); err != nil {
+	api := ConcreteMBTAWebServer{}
+
+	if err := print_light_and_heavy_rail_routes(api); err != nil {
 		panic(err)
 	}
 
-	if err := print_stop_data(); err != nil {
+	if err := print_stop_data(api); err != nil {
 		panic(err)
 	}
 
-	if err := prompt_for_stops_to_route(); err != nil {
+	if err := prompt_for_stops_to_route(api); err != nil {
 		panic(err)
 	}
 }
@@ -103,8 +105,8 @@ const (
 	RouteRailTypeHeavyRail
 )
 
-func print_light_and_heavy_rail_routes() error {
-	names, err := list_light_and_heavy_rail_routes()
+func print_light_and_heavy_rail_routes(api MBTAWebServer) error {
+	names, err := list_light_and_heavy_rail_routes(api)
 	if err != nil {
 		return err
 	}
@@ -118,8 +120,8 @@ func print_light_and_heavy_rail_routes() error {
 	return nil
 }
 
-func list_light_and_heavy_rail_routes() ([]string, error) {
-	wrapper, err := get_heavy_and_light_routes()
+func list_light_and_heavy_rail_routes(api MBTAWebServer) ([]string, error) {
+	wrapper, err := get_heavy_and_light_routes(api)
 	if err != nil {
 		return nil, err
 	}
@@ -133,23 +135,12 @@ func list_light_and_heavy_rail_routes() ([]string, error) {
 	return names, nil
 }
 
-func get_heavy_and_light_routes() (RouteWrapper, error) {
+func get_heavy_and_light_routes(api MBTAWebServer) (RouteWrapper, error) {
 	// Question 1 mentions how we can filter for the rail types on the query, or could filter after having
 	// consumed the response. To save on retrieving data that we don't need, we are asking the server to filter
 	// for us. Given how the filter types are documented with their own type, I feel this speaks reasonably well
 	// as to what is happening with the query params going into the request.
-	url := fmt.Sprintf("https://api-v3.mbta.com/routes?filter[type]=%d,%d", RouteRailTypeLightRail, RouteRailTypeHeavyRail)
-	resp, err := http.Get(url)
-	if err != nil {
-		return RouteWrapper{}, err
-	}
-	wrapper := RouteWrapper{}
-	decoder := json.NewDecoder(resp.Body)
-	if err := decoder.Decode(&wrapper); err != nil {
-		return RouteWrapper{}, err
-	}
-
-	return wrapper, nil
+	return api.GetRoutes(RouteRailTypeLightRail, RouteRailTypeHeavyRail)
 }
 
 type MinMaxData struct {
@@ -159,8 +150,8 @@ type MinMaxData struct {
 	MaxRoute string
 }
 
-func collect_stop_data() (MinMaxData, map[Stop][]Route, error) {
-	wrapper, err := get_heavy_and_light_routes()
+func collect_stop_data(api MBTAWebServer) (MinMaxData, map[Stop][]Route, error) {
+	wrapper, err := get_heavy_and_light_routes(api)
 	if err != nil {
 		return MinMaxData{}, nil, err
 	}
@@ -170,7 +161,7 @@ func collect_stop_data() (MinMaxData, map[Stop][]Route, error) {
 	stopRoutes := map[Stop][]Route{}
 
 	for _, route := range wrapper.Data {
-		stops, err := get_route_stops(route)
+		stops, err := api.GetStops(route)
 		if err != nil {
 			return MinMaxData{}, nil, err
 		}
@@ -204,8 +195,8 @@ func collect_stop_data() (MinMaxData, map[Stop][]Route, error) {
 	}, stopRoutes, nil
 }
 
-func print_stop_data() error {
-	minMaxData, stopRoutes, err := collect_stop_data()
+func print_stop_data(api MBTAWebServer) error {
+	minMaxData, stopRoutes, err := collect_stop_data(api)
 	if err != nil {
 		return err
 	}
@@ -241,28 +232,7 @@ func build_route_list_name(routes []Route) string {
 	return list_name
 }
 
-func get_route_stops(route Route) (StopWrapper, error) {
-	// We want the count of stops for each route. From what I am reading on:
-	// https://api-v3.mbta.com/docs/swagger/index.html#/Stop/ApiWeb_StopController_index
-	// we can only display the route information if we give exactly one route to filter for.
-	// This means that we have to request the stops for each route, but given that there are only
-	// 8 light and heavy routes total, this shouldn't overload their servers or cause a time-out
-	// for this client.
-	url := fmt.Sprintf("https://api-v3.mbta.com/stops?filter[route]=%s", route.ID)
-	resp, err := http.Get(url)
-	if err != nil {
-		return StopWrapper{}, err
-	}
-	wrapper := StopWrapper{}
-	decoder := json.NewDecoder(resp.Body)
-	if err := decoder.Decode(&wrapper); err != nil {
-		return StopWrapper{}, err
-	}
-
-	return wrapper, nil
-}
-
-func prompt_for_stops_to_route() error {
+func prompt_for_stops_to_route(api MBTAWebServer) error {
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Println("Enter Starting Stop")
@@ -280,7 +250,7 @@ func prompt_for_stops_to_route() error {
 	startStopName := strings.TrimSpace(startStop)
 	endStopName := strings.TrimSpace(endStop)
 
-	routes, err := routes_for_stop_to_stop(startStopName, endStopName)
+	routes, err := routes_for_stop_to_stop(api, startStopName, endStopName)
 	if err != nil {
 		return err
 	}
@@ -297,8 +267,8 @@ func prompt_for_stops_to_route() error {
 	return nil
 }
 
-func routes_for_stop_to_stop(startStopName string, endStopName string) ([]Route, error) {
-	wrapper, err := get_heavy_and_light_routes()
+func routes_for_stop_to_stop(api MBTAWebServer, startStopName string, endStopName string) ([]Route, error) {
+	wrapper, err := get_heavy_and_light_routes(api)
 	if err != nil {
 		return nil, err
 	}
@@ -310,7 +280,7 @@ func routes_for_stop_to_stop(startStopName string, endStopName string) ([]Route,
 	endStop := Stop{}
 
 	for _, route := range wrapper.Data {
-		stops, err := get_route_stops(route)
+		stops, err := api.GetStops(route)
 		if err != nil {
 			return nil, err
 		}

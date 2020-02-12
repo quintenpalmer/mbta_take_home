@@ -156,7 +156,7 @@ func collect_stop_data(api MBTAWebServer) (MinMaxData, map[Stop][]Route, error) 
 		return MinMaxData{}, nil, err
 	}
 
-	routeStops := map[Route]StopWrapper{}
+	routeStops := map[Route][]Stop{}
 
 	stopRoutes := map[Stop][]Route{}
 
@@ -165,7 +165,7 @@ func collect_stop_data(api MBTAWebServer) (MinMaxData, map[Stop][]Route, error) 
 		if err != nil {
 			return MinMaxData{}, nil, err
 		}
-		routeStops[route] = stops
+		routeStops[route] = stops.Data
 		for _, stop := range stops.Data {
 			stopRoutes[stop] = append(stopRoutes[stop], route)
 		}
@@ -177,13 +177,13 @@ func collect_stop_data(api MBTAWebServer) (MinMaxData, map[Stop][]Route, error) 
 	maxRoute := ""
 
 	for route, stops := range routeStops {
-		if len(stops.Data) > max {
+		if len(stops) > max {
 			maxRoute = route.Attribute.LongName
-			max = len(stops.Data)
+			max = len(stops)
 		}
-		if len(stops.Data) < min {
+		if len(stops) < min {
 			minRoute = route.Attribute.LongName
-			min = len(stops.Data)
+			min = len(stops)
 		}
 	}
 

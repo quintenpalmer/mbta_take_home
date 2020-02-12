@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	if err := list_light_and_heavy_rail_routes(); err != nil {
+	if err := print_light_and_heavy_rail_routes(); err != nil {
 		panic(err)
 	}
 
@@ -60,19 +60,34 @@ const (
 	RouteRailTypeHeavyRail
 )
 
-func list_light_and_heavy_rail_routes() error {
-	wrapper, err := get_heavy_and_light_routes()
+func print_light_and_heavy_rail_routes() error {
+	names, err := list_light_and_heavy_rail_routes()
 	if err != nil {
 		return err
 	}
 
 	fmt.Println("The Heavy Rail and Light Rail Routes are:")
-	for _, route := range wrapper.Data {
-		fmt.Println(route.Attribute.LongName)
+	for _, name := range names {
+		fmt.Println(name)
 	}
 	fmt.Println("")
 
 	return nil
+}
+
+func list_light_and_heavy_rail_routes() ([]string, error) {
+	wrapper, err := get_heavy_and_light_routes()
+	if err != nil {
+		return nil, err
+	}
+
+	names := []string{}
+
+	for _, route := range wrapper.Data {
+		names = append(names, route.Attribute.LongName)
+	}
+
+	return names, nil
 }
 
 func get_heavy_and_light_routes() (RouteWrapper, error) {

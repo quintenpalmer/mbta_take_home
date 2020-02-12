@@ -424,3 +424,156 @@ func Test_explore_routes_and_stops(t *testing.T) {
 		}
 	})
 }
+
+func Test_routes_for_stop_to_stop(t *testing.T) {
+	t.Run("happy path", func(t *testing.T) {
+		mockAPI := &MockMBTAWebServer{
+			ReturnRouteWrapper: RouteWrapper{
+				Data: []Route{
+					{
+						ID: "route key 1",
+						Attribute: RouteAttribute{
+							LongName: "mock route name 1",
+						},
+					},
+					{
+						ID: "route key 2",
+						Attribute: RouteAttribute{
+							LongName: "mock route name 2",
+						},
+					},
+				},
+			},
+			ReturnStopWrapper: map[string]StopWrapper{
+				"route key 2": StopWrapper{
+					Data: []Stop{
+						{
+							ID: "stop key 1",
+							Attribute: StopAttribute{
+								Name: "mock stop name 1",
+							},
+						},
+						{
+							ID: "stop key 2",
+							Attribute: StopAttribute{
+								Name: "mock stop name 2",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		startStopName := "mock stop name 1"
+		endStopName := "mock stop name 2"
+
+		expected := []Route{
+			{
+				ID: "route key 2",
+				Attribute: RouteAttribute{
+					LongName: "mock route name 2",
+				},
+			},
+		}
+
+		found, err := routes_for_stop_to_stop(mockAPI, startStopName, endStopName)
+		if err != nil {
+			t.Error("did not expect an error")
+		}
+		if !reflect.DeepEqual(expected, found) {
+			t.Errorf("expected %s to be equal to %s", expected, found)
+		}
+	})
+
+	t.Run("sad path - no start", func(t *testing.T) {
+		mockAPI := &MockMBTAWebServer{}
+
+		_, err := routes_for_stop_to_stop(mockAPI, "mock stop 1", "mock stop 2")
+		if err != ErrNoStartStop {
+			t.Errorf("expected error %s to be %s", ErrNoStartStop, err)
+		}
+	})
+
+	t.Run("sad path - no end", func(t *testing.T) {
+		mockAPI := &MockMBTAWebServer{
+			ReturnRouteWrapper: RouteWrapper{
+				Data: []Route{
+					{
+						ID: "route key 1",
+						Attribute: RouteAttribute{
+							LongName: "mock route name 1",
+						},
+					},
+				},
+			},
+			ReturnStopWrapper: map[string]StopWrapper{
+				"route key 1": StopWrapper{
+					Data: []Stop{
+						{
+							ID: "mock stop 1",
+							Attribute: StopAttribute{
+								Name: "mock stop name 1",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		_, err := routes_for_stop_to_stop(mockAPI, "mock stop name 1", "mock stop name 2")
+		if err != ErrNoEndStop {
+			t.Errorf("expected error %s to be %s", ErrNoEndStop, err)
+		}
+	})
+
+	t.Run("sad path - no path available", func(t *testing.T) {
+		mockAPI := &MockMBTAWebServer{
+			ReturnRouteWrapper: RouteWrapper{
+				Data: []Route{
+					{
+						ID: "route key 1",
+						Attribute: RouteAttribute{
+							LongName: "mock route name 1",
+						},
+					},
+					{
+						ID: "route key 2",
+						Attribute: RouteAttribute{
+							LongName: "mock route name 2",
+						},
+					},
+				},
+			},
+			ReturnStopWrapper: map[string]StopWrapper{
+				"route key 1": StopWrapper{
+					Data: []Stop{
+						{
+							ID: "stop key 1",
+							Attribute: StopAttribute{
+								Name: "mock stop name 1",
+							},
+						},
+					},
+				},
+				"route key 2": StopWrapper{
+					Data: []Stop{
+						{
+							ID: "stop key 2",
+							Attribute: StopAttribute{
+								Name: "mock stop name 2",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		startStopName := "mock stop name 1"
+		endStopName := "mock stop name 2"
+
+		_, err := routes_for_stop_to_stop(mockAPI, startStopName, endStopName)
+		if err != ErrNoPath {
+			t.Errorf("expected error %s to be %s", ErrNoPath, err)
+		}
+	})
+}

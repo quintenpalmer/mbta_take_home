@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"strings"
 )
 
 func main() {
@@ -16,7 +19,7 @@ func main() {
 		panic(err)
 	}
 
-	if err := routes_for_stop_to_stop("Ashmont", "Arlington"); err != nil {
+	if err := prompt_for_stops_to_route(); err != nil {
 		panic(err)
 	}
 }
@@ -178,6 +181,24 @@ func get_route_stops(route Route) (StopWrapper, error) {
 	}
 
 	return wrapper, nil
+}
+
+func prompt_for_stops_to_route() error {
+	reader := bufio.NewReader(os.Stdin)
+
+	fmt.Println("Enter Starting Stop")
+	startStop, err := reader.ReadString('\n')
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Enter Ending Stop")
+	endStop, err := reader.ReadString('\n')
+	if err != nil {
+		return err
+	}
+
+	return routes_for_stop_to_stop(strings.TrimSpace(startStop), strings.TrimSpace(endStop))
 }
 
 func routes_for_stop_to_stop(startStopName string, endStopName string) error {

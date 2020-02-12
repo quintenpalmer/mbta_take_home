@@ -24,6 +24,49 @@ func main() {
 	}
 }
 
+type MBTAWebServer interface {
+	GetRoutes(RouteRailType, RouteRailType) (RouteWrapper, error)
+	GetStops(Route) (StopWrapper, error)
+}
+
+type ConcreteMBTAWebServer struct{}
+
+func (c ConcreteMBTAWebServer) GetRoutes(type1 RouteRailType, type2 RouteRailType) (RouteWrapper, error) {
+	url := fmt.Sprintf("https://api-v3.mbta.com/routes?filter[type]=%d,%d", type1, type2)
+	resp, err := http.Get(url)
+	if err != nil {
+		return RouteWrapper{}, err
+	}
+	wrapper := RouteWrapper{}
+	decoder := json.NewDecoder(resp.Body)
+	if err := decoder.Decode(&wrapper); err != nil {
+		return RouteWrapper{}, err
+	}
+
+	return wrapper, nil
+}
+
+func (c ConcreteMBTAWebServer) GetStops(route Route) (StopWrapper, error) {
+	// We want the count of stops for each route. From what I am reading on:
+	// https://api-v3.mbta.com/docs/swagger/index.html#/Stop/ApiWeb_StopController_index
+	// we can only display the route information if we give exactly one route to filter for.
+	// This means that we have to request the stops for each route, but given that there are only
+	// 8 light and heavy routes total, this shouldn't overload their servers or cause a time-out
+	// for this client.
+	url := fmt.Sprintf("https://api-v3.mbta.com/stops?filter[route]=%s", route.ID)
+	resp, err := http.Get(url)
+	if err != nil {
+		return StopWrapper{}, err
+	}
+	wrapper := StopWrapper{}
+	decoder := json.NewDecoder(resp.Body)
+	if err := decoder.Decode(&wrapper); err != nil {
+		return StopWrapper{}, err
+	}
+
+	return wrapper, nil
+}
+
 type RouteWrapper struct {
 	Data []Route `json:"data"`
 }
